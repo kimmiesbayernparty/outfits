@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Outfit Change Countdown</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root {
+      --panel: #000f35;
+      --ink: #fcfafa;
+      --muted: #f0f0f0f5;
+      --ring: #6ae3c9;
+      --soft: rgba(255,255,255,0.159);
+      --radius: 22px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    @font-face { font-family: Hel; src: url(HEL.otf); }
+    @font-face { font-family: Jet; src: url(JetBrainsMonoNL-ExtraLight.ttf); }
+    @font-face { font-family: Jet2; src: url(JetBrainsMonoNL-ExtraBold.ttf); }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background-image: linear-gradient(45deg, #1b0b49 0%, #06011f 100%);
+      color: var(--ink);
+      height: 100dvh;
+      width: 100%;
+    }
+
+    h3, .count { font-family: Jet2; margin: 0; padding: 0; }
+
+    .wrap {
+      height: 100dvh;
+      width: 100%;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stages { 
+      display: grid; 
+      width: 100%;
+      height: 100%;
+      gap: 1rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-auto-rows: minmax(160px, 1fr);
+    }
+
+    .stage {
+      border-radius: var(--radius);
+      color: #0e0b1e;
+      padding: 1rem;
+      font-size: clamp(24px, 4vw, 56px);
+      background-color: var(--stage-bg);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      transition: 
+        grid-column 0.25s ease,
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .stage-content {
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+    }
+
+    .stage h3 { 
+      font-size: .9em; 
+      font-family: Hel; 
+      margin: 0;
+      padding: 0%;
+    }
+
+    .stage-subtitle {
+      font-size: .43em;
+      font-family: Jet;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      margin: 0;
+      padding: 0;
+    }
+
+    .stage.active {
+      grid-column: span 2;  
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
+    }
+
+    .card {
+      background: linear-gradient(75deg, #ecebff08, #cdcfff13);
+      border: 1px solid var(--soft);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 1.5rem;
+      gap: 1rem;
+      width: 100%;
+      height: 100%;
+      transition: 
+        grid-row 0.25s ease,
+        grid-column 0.25s ease;
+    }
+
+    /* When stage 3 or 4 is active, card jumps to 1st row, 3rd column */
+    .card.card--top {
+      grid-row: 1;
+      grid-column: 3;
+    }
+
+    .eyebrow,  .eta  { 
+      color: var(--muted); 
+      font-size: 1em; 
+      font-family: Jet; 
+    }
+
+    .count {
+      font-weight: 900;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: .9;
+      font-size: clamp(40px, 5vw, 50px);
+      display: flex;
+      gap: .2rem;
+    }
+    .count .digit { transition: transform .18s ease, opacity .18s ease; }
+    .count.ticking .digit { transform: translateY(-2px); opacity: .96; }
+
+    .eta-time {
+      font-family: Jet2;
+    }
+
+    .circle-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+    }
+    .circle { width: 60%; height: 90%; position: relative; }
+    .circle svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .circle .track { opacity: .2; }
+    .circle .progress { transition: stroke-dashoffset .2s linear; filter: drop-shadow(0 0 3px #ff00c3); }
+
+    /* ===== Your POPUP ===== */
+    .popup {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 999999999;
+      top: 0;
+      left: 0;
+      background-color: #000f35b7;
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup img {
+      height: 95%;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="stages">
+      <article class="stage" data-stage="0" style="--stage-bg:#55ff3b">
+        <div class="stage-content">
+          <h3>Outfit Eins</h3>
+          <p class="stage-subtitle">Lederhosen</p>
+        </div>
+      </article>
+
+      <article class="stage" data-stage="1" style="--stage-bg:#ff38fc">
+        <div class="stage-content">
+          <h3>Outfit Zwei</h3>
+          <p class="stage-subtitle">Dirndl</p>
+        </div>
+      </article>
+
+      <article class="stage" data-stage="2" style="--stage-bg:#ff3300">
+        <div class="stage-content">
+          <h3>Outfit Drei</h3>
+          <p class="stage-subtitle">Silly Dirndl</p>
+        </div>
+      </article>
+
+      <article class="stage" data-stage="3" style="--stage-bg:#3235ff">
+        <div class="stage-content">
+          <h3>Outfit Vier</h3>
+          <p class="stage-subtitle">Dirndl???</p>
+        </div>
+      </article>
+
+      <!-- TIMER CARD -->
+      <article class="card" id="card">
+        <div class="eyebrow">Zeit bis zum nächsten Outfit Change</div>
+
+        <div id="count" class="count ticking">
+          <span class="digit" id="hh">00</span><span>:</span>
+          <span class="digit" id="mm">00</span><span>:</span>
+          <span class="digit" id="ss">00</span>
+        </div>
+
+        <div class="circle-container" aria-hidden="true">
+          <div class="circle">
+            <svg viewBox="0 0 200 200" role="img" aria-label="Countdown Fortschritt">
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ff0000"/>
+                  <stop offset="100%" stop-color="#ff00fb"/>
+                </linearGradient>
+              </defs>
+              <circle class="track" cx="100" cy="100" r="86" stroke-width="5" fill="none" stroke="#ffffff"/>
+              <circle id="progress" class="progress" cx="100" cy="100" r="86" stroke-width="5" fill="none" stroke="url(#gradient)" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="eta">
+          Nächster Wechsel um
+          <span class="eta-time" id="eta">--:--</span>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- Your popup + sound -->
+  <div class="popup" id="popup" style="display:none;">
+    <img src="SVG/bam.svg" alt="Outfit Change Popup">
+  </div>
+
+  <audio id="popupSound" src="prosit2.mp3" preload="auto"></audio>
+
+  <script>
+    // ----- Config -----
+    const DURATION_MS =  60 * 60 * 1000; 
+  
+    // ----- Elements -----
+    const stages = Array.from(document.querySelectorAll('.stage'));
+    const cardEl = document.getElementById('card');
+    const hhEl = document.getElementById('hh');
+    const mmEl = document.getElementById('mm');
+    const ssEl = document.getElementById('ss');
+    const etaEl = document.getElementById('eta');
+    const countEl = document.getElementById('count');
+    const progressEl = document.getElementById('progress');
+  
+    const popupEl = document.getElementById('popup');
+    const soundEl = document.getElementById('popupSound');
+  
+    // Circle metrics
+    const R = 86;
+    const C = 2 * Math.PI * R;
+    progressEl.setAttribute('stroke-dasharray', C);
+    progressEl.setAttribute('stroke-dashoffset', C);
+  
+    // ----- State -----
+    let idx = 0;
+    let endTime = null;
+    let raf = null;
+    let soundUnlocked = false;   // <-- important
+  
+    const pad2 = n => String(n).padStart(2,'0');
+    const fmtClock = t => new Date(t).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  
+    function setActive(i){
+      const total = stages.length;
+      idx = ((i % total) + total) % total;
+  
+      stages.forEach((el, k) => {
+        el.classList.toggle('active', k === idx);
+      });
+  
+      // Move card to top-right when stage 3 or 4 is active (idx 2 or 3)
+      if (idx >= 2) {
+        cardEl.classList.add('card--top');
+      } else {
+        cardEl.classList.remove('card--top');
+      }
+    }
+  
+    // ----- Unlock sound on first user interaction -----
+    function unlockSoundOnce() {
+      if (!soundEl || soundUnlocked) return;
+  
+      soundEl.play()
+        .then(() => {
+          soundEl.pause();
+          soundEl.currentTime = 0;
+          soundUnlocked = true;
+          // console.log('Sound unlocked ✅');
+        })
+        .catch(() => {
+          // console.log('Could not unlock sound (maybe muted?)');
+        });
+    }
+  
+    // one-time listeners
+    window.addEventListener('click', unlockSoundOnce, { once: true });
+    window.addEventListener('keydown', unlockSoundOnce, { once: true });
+  
+    // ----- Popup trigger -----
+    function triggerPopup() {
+      if (!popupEl) return;
+  
+      // reset & start blink animation
+      popupEl.classList.remove("blink");
+      void popupEl.offsetWidth; // force reflow
+      popupEl.classList.add("blink");
+  
+      // show popup
+      popupEl.style.display = "flex";
+  
+      // play sound ONLY if unlocked
+      if (soundEl && soundUnlocked && typeof soundEl.play === "function") {
+        const p = soundEl.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(() => {
+            // ignore playback errors
+          });
+        }
+      }
+  
+      // hide popup after 1.6s
+      setTimeout(() => {
+        popupEl.classList.remove("blink");
+        popupEl.style.display = "none";
+      }, 10000);
+    }
+  
+    function startStage(i){
+      setActive(i);
+      endTime = Date.now() + DURATION_MS;
+      etaEl.textContent = fmtClock(endTime);
+      if(!raf) raf = requestAnimationFrame(loop);
+      tick();
+    }
+  
+    function nextStage(){
+      startStage(idx + 1);
+    }
+  
+    function tick(){
+      if(!endTime) return;
+  
+      const now = Date.now();
+      let remain = endTime - now;
+  
+      if (remain <= 0) {
+        updateClock(0);
+        updateProgress(1);
+  
+        // time for outfit change → popup + sound
+        triggerPopup();
+  
+        nextStage();
+        return;
+      }
+  
+      const totalSeconds = Math.ceil(remain / 1000);
+      updateClock(totalSeconds);
+  
+      const elapsed = DURATION_MS - remain;
+      const frac = Math.min(Math.max(elapsed / DURATION_MS, 0), 1);
+      updateProgress(frac);
+    }
+  
+    function updateClock(totalSeconds){
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      hhEl.textContent = pad2(h);
+      mmEl.textContent = pad2(m);
+      ssEl.textContent = pad2(s);
+      countEl.classList.add('ticking');
+    }
+  
+    function updateProgress(frac){
+      const offset = C * (1 - frac); // fill clockwise
+      progressEl.setAttribute('stroke-dashoffset', offset);
+    }
+  
+    function loop(){
+      tick();
+      raf = requestAnimationFrame(loop);
+    }
+  
+    window.addEventListener('load', () => startStage(0));
+  </script>
+</body>
+</html>
