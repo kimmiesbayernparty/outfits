@@ -121,16 +121,20 @@
       color: var(--muted); 
       font-size: 1em; 
       font-family: Jet; 
+      margin: 0%;
+      padding: 0%;
     }
 
     .count {
       font-weight: 900;
       letter-spacing: -.02em;
       font-variant-numeric: tabular-nums lining-nums;
-      line-height: .9;
+      line-height: 0;
       font-size: clamp(40px, 5vw, 50px);
       display: flex;
       gap: .2rem;
+      margin: 0%;
+      padding: 0%;
     }
     .count .digit { transition: transform .18s ease, opacity .18s ease; }
     .count.ticking .digit { transform: translateY(-2px); opacity: .96; }
@@ -141,12 +145,12 @@
 
     .circle-container {
       position: relative;
-      width: 100%;
+      width: 50%;
       aspect-ratio: 1;
       display: grid;
-      place-items: center;
+      place-items: start;
     }
-    .circle { width: 60%; height: 90%; position: relative; }
+    .circle { width: 100%; height: 100%; position: relative; }
     .circle svg { position: absolute; inset: 0; transform: rotate(-90deg); }
     .circle .track { opacity: .2; }
     .circle .progress { transition: stroke-dashoffset .2s linear; filter: drop-shadow(0 0 3px #ff00c3); }
@@ -184,7 +188,7 @@
       <article class="stage" data-stage="1" style="--stage-bg:#ff38fc">
         <div class="stage-content">
           <h3>Outfit Zwei</h3>
-          <p class="stage-subtitle">Dirndl</p>
+          <p class="stage-subtitle">"Wow sind die echt?"-Dirndl</p>
         </div>
       </article>
 
