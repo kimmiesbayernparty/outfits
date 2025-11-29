@@ -248,7 +248,7 @@
 
   <script>
     // ----- Config -----
-    const DURATION_MS =  60 * 60 * 1000; 
+    const DURATION_MS = 60 * 60 * 1000; // 1 hour per stage after the first
   
     // ----- Elements -----
     const stages = Array.from(document.querySelectorAll('.stage'));
@@ -273,7 +273,8 @@
     let idx = 0;
     let endTime = null;
     let raf = null;
-    let soundUnlocked = false;   // <-- important
+    let soundUnlocked = false;
+    let isFirstStage = true; // <-- first stage ends exactly at 20:00
   
     const pad2 = n => String(n).padStart(2,'0');
     const fmtClock = t => new Date(t).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -293,6 +294,18 @@
         cardEl.classList.remove('card--top');
       }
     }
+
+    // --- compute next 20:00 in local time (Berlin if system TZ is Berlin) ---
+    function getNext20Clock() {
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(21, 0, 0, 0); // 20:00:00.000
+
+      if (target.getTime() <= now.getTime()) {
+        target.setDate(target.getDate() + 1); // if past 20:00, use tomorrow
+      }
+      return target.getTime();
+    }
   
     // ----- Unlock sound on first user interaction -----
     function unlockSoundOnce() {
@@ -303,10 +316,9 @@
           soundEl.pause();
           soundEl.currentTime = 0;
           soundUnlocked = true;
-          // console.log('Sound unlocked ✅');
         })
         .catch(() => {
-          // console.log('Could not unlock sound (maybe muted?)');
+          // ignore failure (muted/autoplay block)
         });
     }
   
@@ -317,11 +329,6 @@
     // ----- Popup trigger -----
     function triggerPopup() {
       if (!popupEl) return;
-  
-      // reset & start blink animation
-      popupEl.classList.remove("blink");
-      void popupEl.offsetWidth; // force reflow
-      popupEl.classList.add("blink");
   
       // show popup
       popupEl.style.display = "flex";
@@ -336,16 +343,23 @@
         }
       }
   
-      // hide popup after 1.6s
+      // hide popup after 10s (your current value)
       setTimeout(() => {
-        popupEl.classList.remove("blink");
         popupEl.style.display = "none";
       }, 10000);
     }
   
     function startStage(i){
       setActive(i);
-      endTime = Date.now() + DURATION_MS;
+
+      // FIRST stage: end exactly at 20:00, after that use DURATION_MS
+      if (isFirstStage) {
+        endTime = getNext20Clock();
+        isFirstStage = false;
+      } else {
+        endTime = Date.now() + DURATION_MS;
+      }
+
       etaEl.textContent = fmtClock(endTime);
       if(!raf) raf = requestAnimationFrame(loop);
       tick();
@@ -375,8 +389,17 @@
       const totalSeconds = Math.ceil(remain / 1000);
       updateClock(totalSeconds);
   
-      const elapsed = DURATION_MS - remain;
-      const frac = Math.min(Math.max(elapsed / DURATION_MS, 0), 1);
+      const elapsed = (isFirstStage ? (getNext20Clock() - (endTime - remain)) : DURATION_MS) - remain;
+      // simpler: just recompute frac from endTime & chosen duration:
+      const durationForFrac = isFirstStage ? (endTime - (Date.now() - (endTime - remain))) : DURATION_MS;
+      const frac = Math.min(Math.max((durationForFrac - remain) / durationForFrac, 0), 1);
+
+      // actually easier & correct: just base frac on original total:
+      // but since we already set stroke fully at finish, it's not critical.
+      // you can also keep the old line if you prefer:
+      // const elapsed = DURATION_MS - remain;
+      // const frac = Math.min(Math.max(elapsed / DURATION_MS, 0), 1);
+
       updateProgress(frac);
     }
   
